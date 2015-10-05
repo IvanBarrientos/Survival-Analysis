@@ -1,15 +1,23 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Oct  4 16:43:32 2015
-
-@author: ibarrien
-"""
 
 # -*- coding: utf-8 -*-
 """
 Created on Sat Oct  3 18:05:18 2015
 
-@author: ibarrien
+Synthesis
+---------
+Direct implementation of the Aalen additive model as presented in
+"Applied Survival Analysis", 2nd ed, by Hosmer, Lemeshow, May.
+
+As such, there are no smoother params, penalizers, nor in-depth statistics
+produced. We leave these additional attributes to the interested practioner.
+
+Note that this implementation is very numerically stable when the
+number of samples > the number of samples.
+
+We propose this implementation should be used as a benchmark for any
+other implementation of the Aalen additive model in Python.
+
+@author: ibarrien@amazon.com
 """
 
 
@@ -279,50 +287,6 @@ class AalenAdditiveModel():
             test_row.append(x)  # single feature case
         self.test_row = test_row
         return trapz(self.survival_function(), self.timeline)
-        
-        
-    
-    
-    
-    """  
-    def med_expectation(S_function, timeline, dec_places=2, max_tries=10):
-        '''Make prediction as median expected lifetime.'''
-        med = np.median(S_function)
-        med = round(med, dec_places)
-        S_round = [round(s, dec_places) for s in S_function]
-        if med in S_round:
-            med_ind = S_round.index(med)
-            return timeline[med_ind]
-        else: 
-            tries = 0
-            found_med = False
-            while not found_med and tries < max_tries:
-                med += -10**(-dec_places)
-                tries += 1
-                found_med = med in S_round
-            if found_med:
-                med_ind  = S_round.index(med)
-                return timeline[med_ind]
-            else:
-                return 'Error'
-                
-    def total_expectation(self, x):
-        '''Make prediction for x's lifetime as Expectation value'''
-        return np.dot(self.survival_function(x), self.timeline)            
-        
-    def hazard_t(x, k_B):
-        '''Hazard 'rate' at time t=k.
-        
-        Params
-        -------
-        x: test row
-        k_B: matrix B(t=k), equal to sum of B_i's for i=0,.., k
-        '''
-        return np.dot(x, k_B)
-      """
-      
-# WRITE FUNCTION FOR CONDITIONAL EXPECTATION, GIVEN CURR DAYS!      
-            
         
     
         
