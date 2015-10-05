@@ -9,7 +9,7 @@ Direct implementation of the Aalen additive model as presented in
 "Applied Survival Analysis", 2nd ed, by Hosmer, Lemeshow, May.
 
 As such, there are no smoother params, penalizers, nor in-depth statistics
-produced. We leave these additional attributes to the interested practioner.
+produced. We leave these additional attributes to the interested practitioner.
 
 Note that this implementation is very numerically stable when the
 number of samples > the number of samples.
@@ -64,15 +64,6 @@ class AalenAdditiveModel():
     This class fits the regression model:
 
     hazard(t)  = b_0(t) + b_t(t)*x_1 + ... + b_N(t)*x_N
-
-    that is, the hazard rate is a linear function of the covariates.
-
-    Parameters:
-      fit_intercept: If False, do not attach an intercept (column of ones) to the covariate matrix. The
-        intercept, b_0(t) acts as a baseline hazard.
-      conf: the level in the confidence intervals.
-      penalizer: Attach a L2 penalizer to the regression. This improves stability of the estimates
-       and controls high correlation between covariates. Recommended, even if a small value.
 
     """
 
