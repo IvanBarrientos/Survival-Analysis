@@ -12,7 +12,7 @@ As such, there are no smoother params, penalizers, nor in-depth statistics
 produced. We leave these additional attributes to the interested practitioner.
 
 Note that this implementation is very numerically stable when the
-number of samples > the number of samples.
+number of samples > the number of features.
 
 We propose this implementation should be used as a benchmark for any
 other implementation of the Aalen additive model in Python.
