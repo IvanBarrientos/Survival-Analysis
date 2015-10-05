@@ -43,8 +43,8 @@ P(x_test, t) is prob model that x_test stays for at least t total days
 
 Pre-processing notes
 ---------------------
-
-idx = dx.groupby([days])['num_of_books_purchased'].transform(max) == dx['num_of_books_purchased']
+Simple tips that may be useful when training via fit()
+idx = dx.groupby([days])[var1].transform(max) == dx[var2]
 dx = dx[idx]
 all_cids = list(dx[cid])
 mycids = [k for k in all_cids if all_cids.count(k)==1]  # get non repeated cids
