@@ -17,7 +17,8 @@ number of samples > the number of samples.
 We propose this implementation should be used as a benchmark for any
 other implementation of the Aalen additive model in Python.
 
-@author: ibarrien@amazon.com
+@author: Ivan Barrientos
+corps.des.nombres@gmail.com
 """
 
 
@@ -51,12 +52,10 @@ mycids = [k for k in all_cids if all_cids.count(k)==1]  # get non repeated cids
 
 import copy
 import numpy as np
-import pandas as pd
 from numpy.linalg import inv
 from numpy import exp
 from math import factorial
 from scipy.integrate import trapz
-from matplotlib import pyplot as plt
 
 
 class AalenAdditiveModel():
@@ -90,11 +89,13 @@ class AalenAdditiveModel():
         df_train (DataFrame): data to train on
         features (array(object)): list of features i.e. covariates
         duration_var (object): variable name for set of times
-        event_var (object): variable name for set of cancel/did not cancel
+        event_var (object): variable name for set 0 or 1 entries
         
         Notes
         -----
+        NOTE: df_train[event_var] must consist of 0's and 1's
         This is where the majority of initialization takes place.
+        
         '''
         # preprocessing        
         df_train.sort(duration_var, inplace=True)
@@ -105,11 +106,7 @@ class AalenAdditiveModel():
         # add properties
         self.num_samples = df_train.shape[0]
         self.features = features
-        try:
-            self.events = np.array([0 if r=='N' else 1 for r in events])
-        except:
-            self.events = np.array(events)
-  
+        self.events = np.array(events)
         ## set timeline
         timeline = list(df_train[duration_var])
         timeline.sort(reverse=False)  # sort in ascending order by duration val
@@ -263,7 +260,7 @@ class AalenAdditiveModel():
             return res      
         
     def predict(self, x):
-        '''Predict as area under survival curve for test_row.
+        '''Predict as area under survival curve for a single test_row.
         
         Params
         ------
@@ -275,6 +272,7 @@ class AalenAdditiveModel():
         
         Notes
         -----
+        Currently method is not vectorized and will be soon.
         self attribute test_row set here
         values of x should be in order of features list
         IN PROGRESS: check for repeated vals in self.timeline and take avgs
