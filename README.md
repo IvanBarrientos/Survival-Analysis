@@ -1,2 +1,2 @@
 # Survival-Analysis
-survival analysis tools
+survival analysis tools for Python
