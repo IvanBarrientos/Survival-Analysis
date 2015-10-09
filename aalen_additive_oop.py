@@ -1,24 +1,15 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Oct  4 16:43:32 2015
+
+@author: ibarrien
+"""
 
 # -*- coding: utf-8 -*-
 """
 Created on Sat Oct  3 18:05:18 2015
 
-Synthesis
----------
-Direct implementation of the Aalen additive model as presented in
-"Applied Survival Analysis", 2nd ed, by Hosmer, Lemeshow, May.
-
-As such, there are no smoother params, penalizers, nor in-depth statistics
-produced. We leave these additional attributes to the interested practitioner.
-
-Note that this implementation is very numerically stable when the
-number of samples > the number of features.
-
-We propose this implementation should be used as a benchmark for any
-other implementation of the Aalen additive model in Python.
-
-@author: Ivan Barrientos
-corps.des.nombres@gmail.com
+@author: ibarrien
 """
 
 
@@ -43,8 +34,8 @@ P(x_test, t) is prob model that x_test stays for at least t total days
 
 Pre-processing notes
 ---------------------
-Simple tips that may be useful when training via fit()
-idx = dx.groupby([days])[var1].transform(max) == dx[var2]
+
+idx = dx.groupby([days])['num_of_books_purchased'].transform(max) == dx['num_of_books_purchased']
 dx = dx[idx]
 all_cids = list(dx[cid])
 mycids = [k for k in all_cids if all_cids.count(k)==1]  # get non repeated cids
@@ -52,10 +43,12 @@ mycids = [k for k in all_cids if all_cids.count(k)==1]  # get non repeated cids
 
 import copy
 import numpy as np
+import pandas as pd
 from numpy.linalg import inv
 from numpy import exp
 from math import factorial
 from scipy.integrate import trapz
+from matplotlib import pyplot as plt
 
 
 class AalenAdditiveModel():
@@ -64,6 +57,15 @@ class AalenAdditiveModel():
     This class fits the regression model:
 
     hazard(t)  = b_0(t) + b_t(t)*x_1 + ... + b_N(t)*x_N
+
+    that is, the hazard rate is a linear function of the covariates.
+
+    Parameters:
+      fit_intercept: If False, do not attach an intercept (column of ones) to the covariate matrix. The
+        intercept, b_0(t) acts as a baseline hazard.
+      conf: the level in the confidence intervals.
+      penalizer: Attach a L2 penalizer to the regression. This improves stability of the estimates
+       and controls high correlation between covariates. Recommended, even if a small value.
 
     """
 
@@ -80,13 +82,11 @@ class AalenAdditiveModel():
         df_train (DataFrame): data to train on
         features (array(object)): list of features i.e. covariates
         duration_var (object): variable name for set of times
-        event_var (object): variable name for set 0 or 1 entries
+        event_var (object): variable name for set of cancel/did not cancel
         
         Notes
         -----
-        NOTE: df_train[event_var] must consist of 0's and 1's
         This is where the majority of initialization takes place.
-        
         '''
         # preprocessing        
         df_train.sort(duration_var, inplace=True)
@@ -97,7 +97,14 @@ class AalenAdditiveModel():
         # add properties
         self.num_samples = df_train.shape[0]
         self.features = features
-        self.events = np.array(events)
+        '''
+        try:
+            self.events = np.array([0 if r=='N' else 1 for r in events])
+        except:
+            self.events = np.array(events)
+        '''
+        self.events = events
+  
         ## set timeline
         timeline = list(df_train[duration_var])
         timeline.sort(reverse=False)  # sort in ascending order by duration val
@@ -251,7 +258,7 @@ class AalenAdditiveModel():
             return res      
         
     def predict(self, x):
-        '''Predict as area under survival curve for a single test_row.
+        '''Predict as area under survival curve for test_row.
         
         Params
         ------
@@ -263,7 +270,6 @@ class AalenAdditiveModel():
         
         Notes
         -----
-        Currently method is not vectorized and will be soon.
         self attribute test_row set here
         values of x should be in order of features list
         IN PROGRESS: check for repeated vals in self.timeline and take avgs
@@ -276,6 +282,49 @@ class AalenAdditiveModel():
             test_row.append(x)  # single feature case
         self.test_row = test_row
         return trapz(self.survival_function(), self.timeline)
+        
+        
+    def total_expectation(self, x):
+        '''Make prediction for x's lifetime as Expectation value'''
+        return np.dot(self.survival_function(), self.timeline)      
+    
+    """  
+    def med_expectation(S_function, timeline, dec_places=2, max_tries=10):
+        '''Make prediction as median expected lifetime.'''
+        med = np.median(S_function)
+        med = round(med, dec_places)
+        S_round = [round(s, dec_places) for s in S_function]
+        if med in S_round:
+            med_ind = S_round.index(med)
+            return timeline[med_ind]
+        else: 
+            tries = 0
+            found_med = False
+            while not found_med and tries < max_tries:
+                med += -10**(-dec_places)
+                tries += 1
+                found_med = med in S_round
+            if found_med:
+                med_ind  = S_round.index(med)
+                return timeline[med_ind]
+            else:
+                return 'Error'
+                
+           
+        
+    def hazard_t(x, k_B):
+        '''Hazard 'rate' at time t=k.
+        
+        Params
+        -------
+        x: test row
+        k_B: matrix B(t=k), equal to sum of B_i's for i=0,.., k
+        '''
+        return np.dot(x, k_B)
+      """
+      
+# WRITE FUNCTION FOR CONDITIONAL EXPECTATION, GIVEN CURR DAYS!      
+            
         
     
         
