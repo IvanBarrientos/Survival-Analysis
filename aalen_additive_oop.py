@@ -2,16 +2,12 @@
 """
 Created on Sun Oct  4 16:43:32 2015
 
-@author: ibarrien
-"""
-
-# -*- coding: utf-8 -*-
-"""
-Created on Sat Oct  3 18:05:18 2015
+Purpose
+-------
+Basic Aalen additive model.
 
 @author: ibarrien
 """
-
 
 
 
@@ -32,23 +28,16 @@ H(x_test, B(t)) = x_test . B(t), shape = 1, 1
 P(x_test, t) = exp(-H(x_test, B(t))), shape = 1,1 
 P(x_test, t) is prob model that x_test stays for at least t total days
 
-Pre-processing notes
----------------------
 
-idx = dx.groupby([days])['num_of_books_purchased'].transform(max) == dx['num_of_books_purchased']
-dx = dx[idx]
-all_cids = list(dx[cid])
-mycids = [k for k in all_cids if all_cids.count(k)==1]  # get non repeated cids
 '''
 
 import copy
 import numpy as np
 import pandas as pd
-from numpy.linalg import inv
 from numpy import exp
 from math import factorial
 from scipy.integrate import trapz
-from matplotlib import pyplot as plt
+from sklearn.linear_model import LinearRegression as LR
 
 
 class AalenAdditiveModel():
@@ -58,20 +47,13 @@ class AalenAdditiveModel():
 
     hazard(t)  = b_0(t) + b_t(t)*x_1 + ... + b_N(t)*x_N
 
-    that is, the hazard rate is a linear function of the covariates.
-
-    Parameters:
-      fit_intercept: If False, do not attach an intercept (column of ones) to the covariate matrix. The
-        intercept, b_0(t) acts as a baseline hazard.
-      conf: the level in the confidence intervals.
-      penalizer: Attach a L2 penalizer to the regression. This improves stability of the estimates
-       and controls high correlation between covariates. Recommended, even if a small value.
+    The hazard rate is a linear function of the covariates.
 
     """
 
-    def __init__(self, fit_intercept=True, conf=0.95):
+    def __init__(self, fit_intercept=True, zero_bump=False):
         self.fit_intercept = fit_intercept
-        self.conf = conf
+        self.zero_bump = zero_bump
 
 
     def fit(self, df_train, features, duration_var, event_var):
@@ -97,13 +79,11 @@ class AalenAdditiveModel():
         # add properties
         self.num_samples = df_train.shape[0]
         self.features = features
-        '''
+        # set event vals as binary wrt respsonse r
         try:
             self.events = np.array([0 if r=='N' else 1 for r in events])
         except:
             self.events = np.array(events)
-        '''
-        self.events = events
   
         ## set timeline
         timeline = list(df_train[duration_var])
@@ -200,15 +180,27 @@ class AalenAdditiveModel():
         '''
         X_k = self.X_list[curr_row]    
         
-        # if current row sample did not cancel, return zeros array
+        # if curr row did not cancel, return zeros array
         if not self.events[curr_row]:
-            res = np.zeros(self.num_cols)
+            if not self.zero_bump:
+                res = np.zeros(self.num_cols)
+            else:
+                res = np.array([0.001]*self.num_samples)
+        # if curr row did cancel, find ols 
         else:
+            y = np.zeros(self.num_samples)
+            y[curr_row] = 1
+            lr = LR()
+            lr.fit(X_k, y)
+            res = lr.coef_
+            '''
+            # Alternatively:
             y = np.zeros(self.num_samples)
             y[curr_row] = 1
             a = inv(np.dot(X_k.T, X_k))
             b = np.dot(X_k.T, y)
             res = np.dot(a,b)
+            '''
         return res
 
         
@@ -284,33 +276,17 @@ class AalenAdditiveModel():
         return trapz(self.survival_function(), self.timeline)
         
         
+
+                
     def total_expectation(self, x):
         '''Make prediction for x's lifetime as Expectation value'''
-        return np.dot(self.survival_function(), self.timeline)      
-    
-    """  
-    def med_expectation(S_function, timeline, dec_places=2, max_tries=10):
-        '''Make prediction as median expected lifetime.'''
-        med = np.median(S_function)
-        med = round(med, dec_places)
-        S_round = [round(s, dec_places) for s in S_function]
-        if med in S_round:
-            med_ind = S_round.index(med)
-            return timeline[med_ind]
-        else: 
-            tries = 0
-            found_med = False
-            while not found_med and tries < max_tries:
-                med += -10**(-dec_places)
-                tries += 1
-                found_med = med in S_round
-            if found_med:
-                med_ind  = S_round.index(med)
-                return timeline[med_ind]
-            else:
-                return 'Error'
-                
-           
+        test_row = [1]  # initialize with 1 in front if intercept true
+        try:
+            test_row.extend(x)
+        except:
+            test_row.append(x)  # single feature case
+        self.test_row = test_row
+        return np.dot(self.survival_function(), self.timeline)            
         
     def hazard_t(x, k_B):
         '''Hazard 'rate' at time t=k.
@@ -321,9 +297,7 @@ class AalenAdditiveModel():
         k_B: matrix B(t=k), equal to sum of B_i's for i=0,.., k
         '''
         return np.dot(x, k_B)
-      """
       
-# WRITE FUNCTION FOR CONDITIONAL EXPECTATION, GIVEN CURR DAYS!      
             
         
     
